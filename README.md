@@ -6,17 +6,17 @@ This project was inspired Acerola's excellent YouTube video on making shaders: [
 
 ## Features
 
-[x] **Luminance based**: Converts any image into ASCII characters, strictly using the luminance value of a block of pixels.
-[x] **Color Support**: Choose between monochrome, inverted, or full-color outputs.
-[x] **Edge Detection**: Utilizes Sobel filter to perform edge detection to replace edge pixels with specific ASCII characters (`|`, `_`, `/`, `\`) to highlight contours.
-[x] **Difference-of-gaussians preprocessing**: Used as a preprocessing step to filter out extra variations and contours, leaving only the most pronounced one for the edge detection algorithm
-[x] **Effects suite**: Loaded with bloom, color burn, effects for more pronounced color processing.
+- [x] **Luminance based**: Converts any image into ASCII characters, strictly using the luminance value of a block of pixels.
+- [x] **Color Support**: Choose between monochrome, inverted, or full-color outputs.
+- [x] **Edge Detection**: Utilizes Sobel filter to perform edge detection to replace edge pixels with specific ASCII characters (`|`, `_`, `/`, `\`) to highlight contours.
+- [x] **Difference-of-gaussians preprocessing**: Used as a preprocessing step to filter out extra variations and contours, leaving only the most pronounced one for the edge detection algorithm
+- [x] **Effects suite**: Loaded with bloom, color burn, effects for more pronounced color processing.
 
-## Planned
+## Coming Soon
 
-[ ] **CLI**: to have stuff be generated dynamically instead of having to manually adjust parameters.
-[ ] **Customizable Characters**: Customize the ASCII characters used for different luminance levels and edges.
-[ ] **CRT Effect**: Plans for retro CRT filters and neon cyberpunk-inspired aesthetics.
+- [ ] **CLI**: to have stuff be generated dynamically instead of having to manually adjust parameters.
+- [ ] **Customizable Characters**: Customize the ASCII characters used for different luminance levels and edges.
+- [ ] **CRT Effect**: Plans for retro CRT filters and neon cyberpunk-inspired aesthetics.
 
 ## Installation
 
