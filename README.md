@@ -1,15 +1,22 @@
-# Asciify
+# asciify
 
-**Asciify** is a tool for converting images into ASCII art with added edge detection. It uses Go to transform images into ASCII representations, complete with customizable color palettes, edge-based symbol selection, and other stylistic options. This tool can simulate the retro aesthetic of classic text art or experiment with more modern, creative styles.
+**asciify** is a tool for converting images into ASCII art with added edge detection. It uses Go to transform images into ASCII representations, complete with customizable color palettes, edge-based symbol selection, and other stylistic options.
+
+This project was inspired Acerola's excellent YouTube video on making shaders: [I Tried Turning Games into Text](https://www.youtube.com/watch?v=gg40RWiaHRY&t=917s). Massive thanks to Acerola for the inspiration, and hurricane Milton for finally spurring me to do this.
 
 ## Features
 
-- **Image-to-ASCII Conversion**: Converts any image into ASCII characters, where each character represents a block of pixels.
-- **Edge Detection Integration**: Utilizes edge detection to replace edge pixels with specific ASCII characters (`|`, `_`, `/`, `\`) to highlight contours.
-- **Color Support**: Choose between monochrome, inverted, or full-color outputs.
-- **Customizable Characters**: Customize the ASCII characters used for different luminance levels and edges.
-- **Gaussian Blur and Bloom Effects**: Simulate additional visual effects like Gaussian blur and bloom for a unique look.
-- **CRT and Cyberpunk Effects (Coming Soon)**: Plans for retro CRT filters and neon cyberpunk-inspired aesthetics.
+[x] **Luminance based**: Converts any image into ASCII characters, strictly using the luminance value of a block of pixels.
+[x] **Color Support**: Choose between monochrome, inverted, or full-color outputs.
+[x] **Edge Detection**: Utilizes Sobel filter to perform edge detection to replace edge pixels with specific ASCII characters (`|`, `_`, `/`, `\`) to highlight contours.
+[x] **Difference-of-gaussians preprocessing**: Used as a preprocessing step to filter out extra variations and contours, leaving only the most pronounced one for the edge detection algorithm
+[x] **Effects suite**: Loaded with bloom, color burn, effects for more pronounced color processing.
+
+## Planned
+
+[ ] **CLI**: to have stuff be generated dynamically instead of having to manually adjust parameters.
+[ ] **Customizable Characters**: Customize the ASCII characters used for different luminance levels and edges.
+[ ] **CRT Effect**: Plans for retro CRT filters and neon cyberpunk-inspired aesthetics.
 
 ## Installation
 
@@ -47,16 +54,6 @@ You can convert an image to ASCII art using the following command:
 ./asciify -input example.jpg -output ascii_art.png -width 80 -height 40 -scaleFactor 2 -monochrome false -inverted false -font ./fonts/monospace.ttf
 ```
 
-## Planned Features
-
-- **Advanced Color Effects**: Retro CRT filter, neon cyberpunk bloom effects.
-- **Depth of Field Simulation**: Adds depth perception to the ASCII image for enhanced realism.
-- **Customizable ASCII Characters**: Select different characters for a personalized look.
-
 ## Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests for new features, improvements, or bug fixes.
-
-## About
-
-Asciify was built as a fun project to explore image processing, Go, and the fascinating world of ASCII art. It combines modern coding techniques with retro aesthetics to create unique and visually appealing images.

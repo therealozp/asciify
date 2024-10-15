@@ -7,6 +7,7 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/nfnt/resize"
 )
@@ -46,11 +47,26 @@ func loadImage(imagePath string) image.Image {
 	}
 	defer file.Close()
 
-	img, err := jpeg.Decode(file)
-	if err != nil {
-		fmt.Println("Error decoding image: ", err)
-		log.Fatal(err)
-	}
+	// get file extension
+	ext := filepath.Ext(imagePath)
 
-	return img
+	if ext == ".png" {
+		img, err := png.Decode(file)
+		if err != nil {
+			fmt.Println("Error decoding image: ", err)
+			log.Fatal(err)
+		}
+		return img
+
+	} else if ext == ".jpg" || ext == ".jpeg" {
+		img, err := jpeg.Decode(file)
+		if err != nil {
+			fmt.Println("Error decoding image: ", err)
+			log.Fatal(err)
+		}
+		return img
+	}
+	fmt.Println("Unsupported file format: ", ext)
+	log.Fatal(err)
+	return nil
 }

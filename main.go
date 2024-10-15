@@ -14,15 +14,15 @@ var crt = false
 var bloom = true
 
 func main() {
-	imagePath := "assets/mai.jpg"
+	imagePath := "assets/mai-wall2.jpeg"
 	outputPath := "output.jpg"
 
 	inputImage := loadImage(imagePath)
 	width := inputImage.Bounds().Dx()
 	height := inputImage.Bounds().Dy()
 
-	backgroundColor := color.RGBA{0, 0, 0, 255}
-	baseColor := color.RGBA{255, 255, 255, 255}
+	backgroundColor := color.RGBA{17, 3, 1, 255}
+	baseColor := color.RGBA{248, 202, 174, 255}
 
 	fmt.Println("Image loaded successfully.")
 	// asciifyImage(inputImage, outputPath, "cpc464.ttf", width, height, 8, monochrome, inverted)

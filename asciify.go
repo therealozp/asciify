@@ -136,7 +136,7 @@ func asciifyImage(sourceImage image.Image, outputPath string, fontPath string, w
 	saveImage(img, outputPath)
 }
 
-func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, width, height, scaleFactor int, backgroundColor, baseColor color.Color, bloom, crt, monochrome, inverted bool) {
+func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, width, height, scaleFactor int, backgroundColor, baseColor color.Color, bloom, crt, monochrome, burn bool) {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	d_width, d_height, downscaled := downscaleImage(sourceImage, scaleFactor)
 
@@ -200,6 +200,9 @@ func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, widt
 
 	if bloom {
 		img = bloomImage(img, 1.5, 200, 1.5).(*image.RGBA)
+	}
+	if burn {
+		img = applyColorBurn(img, 1.2).(*image.RGBA)
 	}
 	if crt {
 		// do nothing yet

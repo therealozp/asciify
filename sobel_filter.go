@@ -102,8 +102,8 @@ func getSobelFilter(sourceImage image.Image) (image.Image, [][]float64) {
 		angleMap[i] = make([]float64, width)
 	}
 
-	for y := 1; y <= width-1; y++ {
-		for x := 1; x <= height-1; x++ {
+	for y := 1; y <= height-1; y++ {
+		for x := 1; x <= width-1; x++ {
 			pixel_x, pixel_y := 0, 0
 
 			// convolve the image with the kernels

@@ -77,3 +77,24 @@ func bloomImage(img image.Image, blurSigma, bloomThreshold, bloomIntensity float
 
 	return mergeImages(img, blurredBrightness, bloomIntensity)
 }
+
+func applyColorBurn(img image.Image, burnFactor float64) image.Image {
+	bounds := img.Bounds()
+	burnedImg := image.NewRGBA(bounds)
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			r, g, b, a := img.At(x, y).RGBA()
+			burned_r, burned_g, burned_b := colorBurn(uint8(r>>8), burnFactor), colorBurn(uint8(g>>8), burnFactor), colorBurn(uint8(b>>8), burnFactor)
+			burnedImg.Set(x, y, color.RGBA{burned_r, burned_g, burned_b, uint8(a >> 8)})
+		}
+	}
+	return burnedImg
+}
+
+func colorBurn(c uint8, factor float64) uint8 {
+	burned := float64(c) * factor
+	if burned > 255 {
+		burned = 255
+	}
+	return uint8(burned)
+}
