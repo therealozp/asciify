@@ -26,10 +26,12 @@ func getEdgeDirection(angle float64) color.Color {
 	}
 }
 
-func getAngleHeatmap(angleMap [][]float64, width, length int) image.Image {
-	img := image.NewRGBA(image.Rect(0, 0, width, length))
+func getAngleHeatmap(angleMap [][]float64) image.Image {
+	width := len(angleMap[0])
+	height := len(angleMap)
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	for y := 0; y < length; y++ {
+	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			img.Set(x, y, getEdgeDirection(angleMap[y][x]))
 		}
@@ -48,9 +50,15 @@ func computeShaderMap(angleMap [][]float64, width, height int, blockSize int) im
 		for x := 0; x < width; x += blockSize {
 			// get the average angle in the block
 			angleCounts := map[float64]int{}
-			for dy := 0; dy < blockSize; dy++ {
-				for dx := 0; dx < blockSize; dx++ {
-					angle := angleMap[y+dy][x+dx]
+			for dy := 0; dy <= blockSize; dy++ {
+				for dx := 0; dx <= blockSize; dx++ {
+					var angle float64
+					if y+dy >= len(angleMap) || x+dx >= len(angleMap[0]) {
+						// fmt.Println("Warning: indexing out of bounds. Automatically inferring index as NaN. Current requested index of anglemap is:", y+dy, x+dx)
+						angle = math.NaN()
+					} else {
+						angle = angleMap[y+dy][x+dx]
+					}
 					angleCounts[angle]++
 				}
 			}
@@ -71,7 +79,7 @@ func computeShaderMap(angleMap [][]float64, width, height int, blockSize int) im
 			}
 		}
 	}
-	// saveImage(img, "shader_map.png")
+	saveImage(img, "shader_map.png")
 	return img
 }
 
@@ -101,9 +109,8 @@ func getSobelFilter(sourceImage image.Image) (image.Image, [][]float64) {
 	for i := range height {
 		angleMap[i] = make([]float64, width)
 	}
-
-	for y := 1; y <= height-1; y++ {
-		for x := 1; x <= width-1; x++ {
+	for y := 1; y < height-1; y++ {
+		for x := 1; x < width-1; x++ {
 			pixel_x, pixel_y := 0, 0
 
 			// convolve the image with the kernels
@@ -129,28 +136,11 @@ func getSobelFilter(sourceImage image.Image) (image.Image, [][]float64) {
 			} else {
 				angleMap[y][x] = math.NaN()
 			}
-
-			if x == 1 {
-				angleMap[y][x-1] = math.NaN()
-			}
-
-			if y == 1 {
-				angleMap[y-1][x] = math.NaN()
-			}
-
-			if x == width-2 {
-				angleMap[y][x+1] = math.NaN()
-			}
-
-			if y == height-2 {
-				angleMap[y+1][x] = math.NaN()
-			}
-
 			// Set the pixel in the new image
 			img.SetGray(x, y, color.Gray{Y: uint8(magnitude)})
 		}
 	}
-
+	getAngleHeatmap(angleMap)
 	return img, angleMap
 }
 

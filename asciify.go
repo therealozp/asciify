@@ -136,15 +136,17 @@ func asciifyImage(sourceImage image.Image, outputPath string, fontPath string, w
 	saveImage(img, outputPath)
 }
 
-func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, width, height, scaleFactor int, backgroundColor, baseColor color.Color, bloom, crt, monochrome, burn bool) {
+func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scaleFactor int, backgroundColor, baseColor color.Color, bloom, crt, monochrome, burn bool) {
+	width := sourceImage.Bounds().Dx()
+	height := sourceImage.Bounds().Dy()
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	d_width, d_height, downscaled := downscaleImage(sourceImage, scaleFactor)
+	_, _, downscaled := downscaleImage(sourceImage, scaleFactor)
 
 	palette := generateBrightnessPalette(baseColor, 8)
 
 	// Generate edge map
 	_, angleMap := getSobelFilter(sourceImage)
-	edgeMap := computeShaderMap(angleMap, width, height, 8)
+	edgeMap := computeShaderMap(angleMap, width, height, scaleFactor)
 
 	// Set the background color for the output image
 	if monochrome {
@@ -154,16 +156,19 @@ func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, widt
 	}
 
 	// Load the font
-	fontSize := 8.0
+	fontSize := float64(scaleFactor)
 	face, err := loadFont(fontPath, fontSize)
 	if err != nil {
 		fmt.Println("Error loading font: ", err)
 		log.Fatal(err)
 	}
 
+	// DEBUG SAVE IMAGE
+	saveImage(downscaled, "downscaled.png")
+
 	// Iterate over each downscaled pixel and determine ASCII character based on edge directions
-	for y := 0; y <= d_height; y++ {
-		for x := 0; x <= d_width; x++ {
+	for y := downscaled.Bounds().Min.Y; y < downscaled.Bounds().Max.Y; y++ {
+		for x := downscaled.Bounds().Min.X; x < downscaled.Bounds().Max.X; x++ {
 			// Default character based on luminance
 			c := downscaled.At(x, y)
 			asciiChar := getLuminanceCharacter(c)

@@ -24,6 +24,37 @@ func downscaleImage(img image.Image, scale int) (int, int, image.Image) {
 	return width, height, downscaled
 }
 
+func boundImageToScaleMultiple(img image.Image, scalingFactor int) image.Image {
+	// compute the maximum size of the bounded image
+	width := img.Bounds().Dx()
+	height := img.Bounds().Dy()
+	fmt.Println("The current size of the image is: ", width, height)
+
+	reboundedImageWidth := width / scalingFactor * scalingFactor
+	reboundedImageHeight := height / scalingFactor * scalingFactor
+	fmt.Println("The post-processed size of the image is: ", reboundedImageWidth, reboundedImageHeight)
+	reboundedImage := image.NewRGBA(image.Rect(0, 0, reboundedImageWidth, reboundedImageHeight))
+
+	widthDiff := width - reboundedImageWidth
+	heightDiff := height - reboundedImageHeight
+	if widthDiff == 0 && heightDiff == 0 {
+		return img
+	}
+
+	startOffset_W := widthDiff / 2
+	endOffset_W := widthDiff - startOffset_W
+
+	startOffset_H := heightDiff / 2
+	endOffset_H := heightDiff - startOffset_H
+
+	for y := startOffset_H; y < reboundedImage.Bounds().Dy()-endOffset_H; y++ {
+		for x := startOffset_W; x < reboundedImage.Bounds().Dx()-endOffset_W; x++ {
+			reboundedImage.Set(x, y, img.At(x, y))
+		}
+	}
+	return reboundedImage
+}
+
 func saveImage(img image.Image, filename string) {
 	output_file, err := os.Create("output/" + filename)
 	if err != nil {
