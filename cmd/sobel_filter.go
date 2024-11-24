@@ -1,6 +1,7 @@
-package main
+package cmd
 
 import (
+	"asciify/cmd/utils"
 	"image"
 	"image/color"
 	"math"
@@ -37,7 +38,7 @@ func getAngleHeatmap(angleMap [][]float64) image.Image {
 		}
 	}
 
-	saveImage(img, "angle_heatmap.png")
+	utils.SaveImage(img, "angle_heatmap.png")
 	return img
 }
 
@@ -79,7 +80,7 @@ func computeShaderMap(angleMap [][]float64, width, height int, blockSize int) im
 			}
 		}
 	}
-	saveImage(img, "shader_map.png")
+	utils.SaveImage(img, "shader_map.png")
 	return img
 }
 
@@ -116,7 +117,7 @@ func getSobelFilter(sourceImage image.Image) (image.Image, [][]float64) {
 			// convolve the image with the kernels
 			for dy := -1; dy < 2; dy++ {
 				for dx := -1; dx < 2; dx++ {
-					lum := getLuminance(sourceImage.At(x+dx, y+dy)) / 65535.0 * 255
+					lum := utils.GetLuminance(sourceImage.At(x+dx, y+dy)) / 65535.0 * 255
 					pixel_x += int(lum * Gx[dx+1][dy+1])
 					pixel_y += int(lum * Gy[dx+1][dy+1])
 				}

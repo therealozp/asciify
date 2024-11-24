@@ -1,11 +1,11 @@
-package main
+package utils
 
 import (
 	"image"
 	"image/color"
 )
 
-func generateBrightnessPalette(baseColor color.Color, shades int) []color.Color {
+func GenerateBrightnessPalette(baseColor color.Color, shades int) []color.Color {
 	r, g, b, _ := baseColor.RGBA()
 	palette := make([]color.Color, shades)
 
@@ -22,7 +22,7 @@ func generateBrightnessPalette(baseColor color.Color, shades int) []color.Color 
 }
 
 // bloom: extract the highlights -> gaussian blur the highlighted image -> combine with original
-func extractHighlights(img image.Image, thresh float64) image.Image {
+func ExtractHighlights(img image.Image, thresh float64) image.Image {
 	width := img.Bounds().Dx()
 	height := img.Bounds().Dy()
 	brightnessPass := image.NewRGBA(img.Bounds())
@@ -42,7 +42,7 @@ func extractHighlights(img image.Image, thresh float64) image.Image {
 	return brightnessPass
 }
 
-func clamp(val, min, max float64) float64 {
+func Clamp(val, min, max float64) float64 {
 	if val < min {
 		return min
 	}
@@ -52,7 +52,7 @@ func clamp(val, min, max float64) float64 {
 	return val
 }
 
-func mergeImages(base, bloom image.Image, intensity float64) image.Image {
+func MergeImages(base, bloom image.Image, intensity float64) image.Image {
 	bounds := base.Bounds()
 	combined := image.NewRGBA(bounds)
 
@@ -61,9 +61,9 @@ func mergeImages(base, bloom image.Image, intensity float64) image.Image {
 			br, bg, bb, ba := base.At(x, y).RGBA()
 			bloomR, bloomG, bloomB, _ := bloom.At(x, y).RGBA()
 
-			r := uint8(clamp((float64(br>>8)*(1.0-(float64(bloomR>>8)/255.0*intensity)) + float64(bloomR>>8)*intensity), 0, 255))
-			g := uint8(clamp((float64(bg>>8)*(1.0-(float64(bloomG>>8)/255.0*intensity)) + float64(bloomG>>8)*intensity), 0, 255))
-			b := uint8(clamp((float64(bb>>8)*(1.0-(float64(bloomB>>8)/255.0*intensity)) + float64(bloomB>>8)*intensity), 0, 255))
+			r := uint8(Clamp((float64(br>>8)*(1.0-(float64(bloomR>>8)/255.0*intensity)) + float64(bloomR>>8)*intensity), 0, 255))
+			g := uint8(Clamp((float64(bg>>8)*(1.0-(float64(bloomG>>8)/255.0*intensity)) + float64(bloomG>>8)*intensity), 0, 255))
+			b := uint8(Clamp((float64(bb>>8)*(1.0-(float64(bloomB>>8)/255.0*intensity)) + float64(bloomB>>8)*intensity), 0, 255))
 
 			combined.Set(x, y, color.RGBA{r, g, b, uint8(ba >> 8)})
 		}
@@ -71,27 +71,27 @@ func mergeImages(base, bloom image.Image, intensity float64) image.Image {
 	return combined
 }
 
-func bloomImage(img image.Image, blurSigma, bloomThreshold, bloomIntensity float64) image.Image {
-	brightnessMap := extractHighlights(img, bloomThreshold)
-	blurredBrightness := gaussianBlur(brightnessMap, blurSigma)
+func BloomImage(img image.Image, blurSigma, bloomThreshold, bloomIntensity float64) image.Image {
+	brightnessMap := ExtractHighlights(img, bloomThreshold)
+	blurredBrightness := GaussianBlur(brightnessMap, blurSigma)
 
-	return mergeImages(img, blurredBrightness, bloomIntensity)
+	return MergeImages(img, blurredBrightness, bloomIntensity)
 }
 
-func applyColorBurn(img image.Image, burnFactor float64) image.Image {
+func ApplyColorBurn(img image.Image, burnFactor float64) image.Image {
 	bounds := img.Bounds()
 	burnedImg := image.NewRGBA(bounds)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r, g, b, a := img.At(x, y).RGBA()
-			burned_r, burned_g, burned_b := colorBurn(uint8(r>>8), burnFactor), colorBurn(uint8(g>>8), burnFactor), colorBurn(uint8(b>>8), burnFactor)
+			burned_r, burned_g, burned_b := ColorBurn(uint8(r>>8), burnFactor), ColorBurn(uint8(g>>8), burnFactor), ColorBurn(uint8(b>>8), burnFactor)
 			burnedImg.Set(x, y, color.RGBA{burned_r, burned_g, burned_b, uint8(a >> 8)})
 		}
 	}
 	return burnedImg
 }
 
-func colorBurn(c uint8, factor float64) uint8 {
+func ColorBurn(c uint8, factor float64) uint8 {
 	burned := float64(c) * factor
 	if burned > 255 {
 		burned = 255

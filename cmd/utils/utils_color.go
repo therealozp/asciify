@@ -1,11 +1,13 @@
-package main
+package utils
 
 import (
 	"image/color"
 	"math"
 )
 
-func sRGBToLin(v float64) float64 {
+var asciiMap = []rune{' ', '.', '>', '+', 'o', 'P', '0', '?', '#', '@'}
+
+func SRGBToLin(v float64) float64 {
 	if v <= 0.04045 {
 		return v / 12.92
 	} else {
@@ -13,7 +15,7 @@ func sRGBToLin(v float64) float64 {
 	}
 }
 
-func luminanceToBrightness(lum float64) float64 {
+func LuminanceToBrightness(lum float64) float64 {
 	// Send this function a luminance value between 0.0 and 1.0,
 	// and it returns L* which is "perceptual lightness"
 
@@ -24,15 +26,15 @@ func luminanceToBrightness(lum float64) float64 {
 	}
 }
 
-func getTrueLuminance(c color.Color) rune {
+func GetTrueLuminance(c color.Color) rune {
 	r, g, b, _ := c.RGBA()
 	// fmt.Println("r", r, "g", g, "b", b)
 	const divisor_factor float64 = 65535.0
 	vR, vG, vB := float64(r)/divisor_factor, float64(g)/divisor_factor, float64(b)/divisor_factor
 	// fmt.Println("vR", vR, "vG", vG, "vB", vB)
 
-	luminance := (0.2126*sRGBToLin(vR) + 0.7152*sRGBToLin(vG) + 0.0722*sRGBToLin(vB))
-	brightness := luminanceToBrightness(luminance)
+	luminance := (0.2126*SRGBToLin(vR) + 0.7152*SRGBToLin(vG) + 0.0722*SRGBToLin(vB))
+	brightness := LuminanceToBrightness(luminance)
 
 	// fmt.Println("brightness", brightness)
 
@@ -42,15 +44,15 @@ func getTrueLuminance(c color.Color) rune {
 	return asciiMap[asciiIndex]
 }
 
-func getLuminance(c color.Color) float64 {
+func GetLuminance(c color.Color) float64 {
 	r, g, b, _ := c.RGBA()
 	brightness := 0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b) // Standard luminance
 
 	return brightness
 }
 
-func getLuminanceCharacter(c color.Color) rune {
-	brightness := getLuminance(c)
+func GetLuminanceCharacter(c color.Color) rune {
+	brightness := GetLuminance(c)
 	brightness /= 65535.0
 
 	asciiIndex := uint(brightness * float64(len(asciiMap)-1))

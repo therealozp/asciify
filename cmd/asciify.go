@@ -1,6 +1,7 @@
-package main
+package cmd
 
 import (
+	"asciify/cmd/utils"
 	"bufio"
 	"fmt"
 	"image"
@@ -42,7 +43,7 @@ func drawCharacter(img *image.RGBA, pos image.Point, c rune, face font.Face, sca
 	d.DrawString(string(c))
 }
 
-func asciiToImage(asciiPath string, outputPath string, fontPath string, originalWidth, originalHeight int, inverted bool) {
+func AsciiToImage(asciiPath string, outputPath string, fontPath string, originalWidth, originalHeight int, inverted bool) {
 	// create the canvas
 	img := image.NewRGBA(image.Rect(0, 0, originalWidth, originalHeight))
 	if inverted {
@@ -95,9 +96,9 @@ func asciiToImage(asciiPath string, outputPath string, fontPath string, original
 	}
 }
 
-func asciifyImage(sourceImage image.Image, outputPath string, fontPath string, width, height, scaleFactor int, monochrome bool, inverted bool) {
+func AsciifyImage(sourceImage image.Image, outputPath string, fontPath string, width, height, scaleFactor int, monochrome bool, inverted bool) {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	d_width, d_height, downscaled := downscaleImage(sourceImage, scaleFactor)
+	d_width, d_height, downscaled := utils.DownscaleImage(sourceImage, scaleFactor)
 
 	if monochrome {
 		if inverted {
@@ -122,27 +123,27 @@ func asciifyImage(sourceImage image.Image, outputPath string, fontPath string, w
 			r, g, b, a := c.RGBA()
 			// have to bit shift from 16 bit to 8 bit
 			if !monochrome {
-				drawCharacter(img, image.Pt(x, y), getLuminanceCharacter(c), face, scaleFactor, color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)})
+				drawCharacter(img, image.Pt(x, y), utils.GetLuminanceCharacter(c), face, scaleFactor, color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)})
 			} else {
 				if inverted {
-					drawCharacter(img, image.Pt(x, y), getLuminanceCharacter(c), face, scaleFactor, color.White)
+					drawCharacter(img, image.Pt(x, y), utils.GetLuminanceCharacter(c), face, scaleFactor, color.White)
 				} else {
-					drawCharacter(img, image.Pt(x, y), getLuminanceCharacter(c), face, scaleFactor, color.Black)
+					drawCharacter(img, image.Pt(x, y), utils.GetLuminanceCharacter(c), face, scaleFactor, color.Black)
 				}
 			}
 		}
 		// fmt.Println()
 	}
-	saveImage(img, outputPath)
+	utils.SaveImage(img, outputPath)
 }
 
-func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scaleFactor int, backgroundColor, baseColor color.Color, bloom, crt, monochrome, burn bool) {
+func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scaleFactor int, backgroundColor, baseColor color.Color, bloom, crt, monochrome, burn bool) {
 	width := sourceImage.Bounds().Dx()
 	height := sourceImage.Bounds().Dy()
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	_, _, downscaled := downscaleImage(sourceImage, scaleFactor)
+	_, _, downscaled := utils.DownscaleImage(sourceImage, scaleFactor)
 
-	palette := generateBrightnessPalette(baseColor, 8)
+	palette := utils.GenerateBrightnessPalette(baseColor, 8)
 
 	// Generate edge map
 	_, angleMap := getSobelFilter(sourceImage)
@@ -164,14 +165,14 @@ func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 	}
 
 	// DEBUG SAVE IMAGE
-	saveImage(downscaled, "downscaled.png")
+	utils.SaveImage(downscaled, "downscaled.png")
 
 	// Iterate over each downscaled pixel and determine ASCII character based on edge directions
 	for y := downscaled.Bounds().Min.Y; y < downscaled.Bounds().Max.Y; y++ {
 		for x := downscaled.Bounds().Min.X; x < downscaled.Bounds().Max.X; x++ {
 			// Default character based on luminance
 			c := downscaled.At(x, y)
-			asciiChar := getLuminanceCharacter(c)
+			asciiChar := utils.GetLuminanceCharacter(c)
 
 			// Check for edge direction from edgeMap
 			edgeColor := edgeMap.At(x, y)
@@ -189,7 +190,7 @@ func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 			// Determine character color
 			var charColor color.Color
 			if monochrome {
-				lum := getLuminance(c)
+				lum := utils.GetLuminance(c)
 				lum /= 65535.0
 				paletteIndex := uint(lum * float64(len(palette)-1))
 				charColor = palette[paletteIndex]
@@ -204,14 +205,14 @@ func asciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 	}
 
 	if bloom {
-		img = bloomImage(img, 1.5, 200, 1.5).(*image.RGBA)
+		img = utils.BloomImage(img, 1.5, 200, 1.5).(*image.RGBA)
 	}
 	if burn {
-		img = applyColorBurn(img, 1.2).(*image.RGBA)
+		img = utils.ApplyColorBurn(img, 1.2).(*image.RGBA)
 	}
 	if crt {
 		// do nothing yet
 	}
 	// Save the final image with edge effects
-	saveImage(img, outputPath)
+	utils.SaveImage(img, outputPath)
 }

@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/nfnt/resize"
 )
 
-func downscaleImage(img image.Image, scale int) (int, int, image.Image) {
+func DownscaleImage(img image.Image, scale int) (int, int, image.Image) {
 	width := img.Bounds().Dx()
 	height := img.Bounds().Dy()
 
@@ -24,7 +24,7 @@ func downscaleImage(img image.Image, scale int) (int, int, image.Image) {
 	return width, height, downscaled
 }
 
-func boundImageToScaleMultiple(img image.Image, scalingFactor int) image.Image {
+func BoundImageToScaleMultiple(img image.Image, scalingFactor int) image.Image {
 	// compute the maximum size of the bounded image
 	width := img.Bounds().Dx()
 	height := img.Bounds().Dy()
@@ -55,7 +55,7 @@ func boundImageToScaleMultiple(img image.Image, scalingFactor int) image.Image {
 	return reboundedImage
 }
 
-func saveImage(img image.Image, filename string) {
+func SaveImage(img image.Image, filename string) {
 	output_file, err := os.Create("output/" + filename)
 	if err != nil {
 		fmt.Println("Error creating output file: ", err)
@@ -70,7 +70,7 @@ func saveImage(img image.Image, filename string) {
 	fmt.Println("Image saved successfully.")
 }
 
-func loadImage(imagePath string) image.Image {
+func LoadImage(imagePath string) image.Image {
 	file, err := os.Open(imagePath)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
