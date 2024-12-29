@@ -38,7 +38,7 @@ func getAngleHeatmap(angleMap [][]float64) image.Image {
 		}
 	}
 
-	utils.SaveImage(img, "angle_heatmap.png")
+	// utils.SaveImage(img, "angle_heatmap.png")
 	return img
 }
 
@@ -80,7 +80,7 @@ func computeShaderMap(angleMap [][]float64, width, height int, blockSize int) im
 			}
 		}
 	}
-	utils.SaveImage(img, "shader_map.png")
+	// utils.SaveImage(img, "shader_map.png")
 	return img
 }
 

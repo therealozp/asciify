@@ -56,7 +56,7 @@ func BoundImageToScaleMultiple(img image.Image, scalingFactor int) image.Image {
 }
 
 func SaveImage(img image.Image, filename string) {
-	output_file, err := os.Create("output/" + filename)
+	output_file, err := os.Create(filename)
 	if err != nil {
 		fmt.Println("Error creating output file: ", err)
 		log.Fatal(err)
