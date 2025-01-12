@@ -120,3 +120,45 @@ func FastGaussianBlur(img image.Image, sigma float64) image.Image {
 
 	return blurred
 }
+
+func PolynomialGaussianKernel(sigma float64, radius int) []float64 {
+	kernel := make([]float64, 2*radius+1)
+	for i := -radius; i <= radius; i++ {
+		x := float64(i)
+		kernel[i+radius] = math.Exp(-(x * x) / (2 * sigma * sigma))
+	}
+	return kernel
+}
+
+func PolynomialGaussianBlur(img image.Image, sigma float64) image.Image {
+	width := img.Bounds().Dx()
+	height := img.Bounds().Dy()
+	blurred := image.NewRGBA(img.Bounds())
+
+	kernel := PolynomialGaussianKernel(sigma, int(math.Ceil(sigma*3)))
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			var sumR, sumG, sumB, weightSum float64
+			for k := -len(kernel) / 2; k <= len(kernel)/2; k++ {
+				px := x + k
+				if px >= 0 && px < width {
+					r, g, b, _ := img.At(px, y).RGBA()
+					weight := kernel[k+len(kernel)/2]
+					sumR += weight * float64(r>>8)
+					sumG += weight * float64(g>>8)
+					sumB += weight * float64(b>>8)
+					weightSum += weight
+				}
+			}
+			blurred.Set(x, y, color.RGBA{
+				uint8(sumR / weightSum),
+				uint8(sumG / weightSum),
+				uint8(sumB / weightSum),
+				255,
+			})
+		}
+	}
+
+	return blurred
+}

@@ -143,7 +143,7 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	_, _, downscaled := utils.DownscaleImage(sourceImage, scaleFactor)
 
-	palette := utils.GenerateBrightnessPalette(baseColor, 8)
+	palette := utils.GenerateSpicedBrightnessPalette(baseColor, 8)
 
 	// Generate edge map
 	_, angleMap := getSobelFilter(sourceImage)
@@ -195,7 +195,7 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 	}
 
 	if bloom {
-		img = utils.BloomImage(img, 6, 225, 6).(*image.RGBA)
+		img = utils.BloomImage(img, 3, 235, 6).(*image.RGBA)
 	}
 	if burn {
 		img = utils.ApplyColorBurn(img, 1.2).(*image.RGBA)

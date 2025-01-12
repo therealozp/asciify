@@ -3,6 +3,7 @@ package utils
 import (
 	"image"
 	"image/color"
+	"math"
 )
 
 func GenerateBrightnessPalette(baseColor color.Color, shades int) []color.Color {
@@ -16,6 +17,39 @@ func GenerateBrightnessPalette(baseColor color.Color, shades int) []color.Color 
 		newG := uint8(float64(g>>8) * factor)
 		newB := uint8(float64(b>>8) * factor)
 		palette[i] = color.RGBA{newR, newG, newB, 255}
+	}
+
+	return palette
+}
+
+func GenerateSpicedBrightnessPalette(baseColor color.Color, shades int) []color.Color {
+	r, g, b, _ := baseColor.RGBA()
+	baseH, baseS, baseV := RGBToHSV(uint8(r>>8), uint8(g>>8), uint8(b>>8))
+	palette := make([]color.Color, shades)
+
+	// Generate palette with varying saturation or hues for spice
+	for i := 0; i < shades; i++ {
+		// Linear progression for brightness
+		factor := float64(i) / float64(shades-1)
+
+		// Logarithmic progression for brightness
+		// factor := math.Log(float64(i+1)) / math.Log(float64(shades))
+
+		// Inverse square
+		// factor := 1.0 - 1.0/math.Pow(float64(i)/float64(shades-1)+1, 2)
+
+		// factor := math.Pow(float64(i)/float64(shades-1), 1.4) // Quadratic progression
+
+		// Add some hue shift and saturation variation
+		hueShift := math.Sin(factor*math.Pi) * 10 // Oscillates hue for a bit of variety
+		saturation := baseS * (0.8 + 0.2*factor)  // Slight increase in saturation towards lighter colors
+
+		// Adjust brightness (V) for the dark-to-light effect
+		brightness := baseV * factor
+
+		// Convert back to RGB
+		rNew, gNew, bNew := HSVToRGB(baseH+hueShift, saturation, brightness)
+		palette[i] = color.RGBA{rNew, gNew, bNew, 255}
 	}
 
 	return palette

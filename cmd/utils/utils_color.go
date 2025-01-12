@@ -97,3 +97,64 @@ func ParseHexColorFast(s string) (c color.RGBA, err error) {
 	}
 	return
 }
+
+func RGBToHSV(r, g, b uint8) (float64, float64, float64) {
+	rNorm := float64(r) / 255.0
+	gNorm := float64(g) / 255.0
+	bNorm := float64(b) / 255.0
+
+	max := math.Max(math.Max(rNorm, gNorm), bNorm)
+	min := math.Min(math.Min(rNorm, gNorm), bNorm)
+	delta := max - min
+
+	var h, s, v float64
+	v = max
+
+	if delta == 0 {
+		h = 0
+	} else if max == rNorm {
+		h = 60 * math.Mod((gNorm-bNorm)/delta, 6)
+	} else if max == gNorm {
+		h = 60 * ((bNorm-rNorm)/delta + 2)
+	} else {
+		h = 60 * ((rNorm-gNorm)/delta + 4)
+	}
+
+	if v == 0 {
+		s = 0
+	} else {
+		s = delta / v
+	}
+
+	if h < 0 {
+		h += 360
+	}
+
+	return h, s, v
+}
+
+func HSVToRGB(h, s, v float64) (uint8, uint8, uint8) {
+	c := v * s
+	x := c * (1 - math.Abs(math.Mod(h/60.0, 2)-1))
+	m := v - c
+
+	var r, g, b float64
+	if h < 60 {
+		r, g, b = c, x, 0
+	} else if h < 120 {
+		r, g, b = x, c, 0
+	} else if h < 180 {
+		r, g, b = 0, c, x
+	} else if h < 240 {
+		r, g, b = 0, x, c
+	} else if h < 300 {
+		r, g, b = x, 0, c
+	} else {
+		r, g, b = c, 0, x
+	}
+
+	rOut := uint8((r + m) * 255)
+	gOut := uint8((g + m) * 255)
+	bOut := uint8((b + m) * 255)
+	return rOut, gOut, bOut
+}

@@ -19,7 +19,7 @@ var (
 	crt                = false
 	bloom              = true
 	backgroundColorHex = "110301"
-	baseColorHex       = "f8caae"
+	baseColorHex       = "f5bea3"
 	outputDir          string
 	outputFile         string
 	scaleFactor        int
