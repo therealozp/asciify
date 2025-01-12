@@ -8,8 +8,8 @@ import (
 )
 
 func DifferenceOfGaussians(src image.Image, sigma, sigma_scale, threshold, tau float64) *image.Gray {
-	blur1 := utils.GaussianBlur(src, sigma)
-	blur2 := utils.GaussianBlur(src, sigma*sigma_scale)
+	blur1 := utils.FastGaussianBlur(src, sigma)
+	blur2 := utils.FastGaussianBlur(src, sigma*sigma_scale)
 
 	width := src.Bounds().Dx()
 	height := src.Bounds().Dy()

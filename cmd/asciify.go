@@ -147,7 +147,7 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 
 	// Generate edge map
 	_, angleMap := getSobelFilter(sourceImage)
-	edgeMap := computeShaderMap(angleMap, width, height, scaleFactor)
+	edgeMap := optimizedShaderMap(angleMap, width, height, scaleFactor)
 
 	// Set the background color for the output image
 	if monochrome {
@@ -165,7 +165,7 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 	}
 
 	// DEBUG SAVE IMAGE
-	utils.SaveImage(downscaled, "downscaled.png")
+	// utils.SaveImage(downscaled, "downscaled.png")
 
 	// Iterate over each downscaled pixel and determine ASCII character based on edge directions
 	for y := downscaled.Bounds().Min.Y; y < downscaled.Bounds().Max.Y; y++ {
@@ -173,18 +173,8 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 			// Default character based on luminance
 			c := downscaled.At(x, y)
 			asciiChar := utils.GetLuminanceCharacter(c)
-
-			// Check for edge direction from edgeMap
-			edgeColor := edgeMap.At(x, y)
-			r, g, b, _ := edgeColor.RGBA()
-			if r > 0 && g > 0 {
-				asciiChar = '/'
-			} else if r > 0 {
-				asciiChar = '|'
-			} else if g > 0 {
-				asciiChar = '-'
-			} else if b > 0 {
-				asciiChar = '\\'
+			if edgeMap[y][x] != ' ' {
+				asciiChar = edgeMap[y][x]
 			}
 
 			// Determine character color
@@ -205,7 +195,7 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 	}
 
 	if bloom {
-		img = utils.BloomImage(img, 1.5, 200, 1.5).(*image.RGBA)
+		img = utils.BloomImage(img, 6, 225, 6).(*image.RGBA)
 	}
 	if burn {
 		img = utils.ApplyColorBurn(img, 1.2).(*image.RGBA)

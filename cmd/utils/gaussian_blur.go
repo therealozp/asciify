@@ -6,7 +6,7 @@ import (
 	"math"
 )
 
-func GaussianBlur(img image.Image, sigma float64) image.Image {
+func PerfectGaussianBlur(img image.Image, sigma float64) image.Image {
 	width := img.Bounds().Dx()
 	height := img.Bounds().Dy()
 
@@ -50,4 +50,73 @@ func GaussianKernel(sigma float64) []float64 {
 	}
 
 	return kernel
+}
+
+func FastGaussianBlur(img image.Image, sigma float64) image.Image {
+	width := img.Bounds().Dx()
+	height := img.Bounds().Dy()
+
+	// horizontal blur
+	kernel := GaussianKernel(sigma)
+	kernelSize := len(kernel) / 2
+	horizontal := image.NewRGBA(img.Bounds())
+
+	for y := 0; y < height; y++ {
+		for x := kernelSize; x < width-kernelSize; x++ {
+			var sumR, sumG, sumB float64
+			var kernelSum float64
+
+			for dx := -kernelSize; dx <= kernelSize; dx++ {
+				if x+dx < 0 || x+dx >= width {
+					continue
+				}
+				r, g, b, _ := img.At(x+dx, y).RGBA()
+				weight := kernel[dx+kernelSize]
+				sumR += float64(r>>8) * weight
+				sumG += float64(g>>8) * weight
+				sumB += float64(b>>8) * weight
+				kernelSum += weight
+			}
+
+			// Normalize and set the pixel in the horizontal image
+			rgbaColor := color.RGBA{
+				R: uint8(sumR / kernelSum),
+				G: uint8(sumG / kernelSum),
+				B: uint8(sumB / kernelSum),
+				A: 255,
+			}
+			horizontal.Set(x, y, rgbaColor)
+		}
+	}
+
+	// vertical blur
+	blurred := image.NewRGBA(img.Bounds())
+	for y := 0; y < height; y++ {
+		for x := kernelSize; x < width-kernelSize; x++ {
+			var sumR, sumG, sumB float64
+			var kernelSum float64
+
+			for dy := -kernelSize; dy <= kernelSize; dy++ {
+				if y+dy < 0 || y+dy >= width {
+					continue
+				}
+				r, g, b, _ := img.At(x, y+dy).RGBA()
+				weight := kernel[dy+kernelSize]
+				sumR += float64(r>>8) * weight
+				sumG += float64(g>>8) * weight
+				sumB += float64(b>>8) * weight
+				kernelSum += weight
+			}
+
+			rgbaColor := color.RGBA{
+				R: uint8(sumR / kernelSum),
+				G: uint8(sumG / kernelSum),
+				B: uint8(sumB / kernelSum),
+				A: 255,
+			}
+			horizontal.Set(x, y, rgbaColor)
+		}
+	}
+
+	return blurred
 }

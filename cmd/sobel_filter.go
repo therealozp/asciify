@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"asciify/cmd/utils"
+	"fmt"
 	"image"
 	"image/color"
 	"math"
+	"runtime"
+	"sync"
 )
 
 func getEdgeDirection(angle float64) color.Color {
@@ -40,6 +43,55 @@ func getAngleHeatmap(angleMap [][]float64) image.Image {
 
 	// utils.SaveImage(img, "angle_heatmap.png")
 	return img
+}
+
+func optimizedShaderMap(angleMap [][]float64, width, height, blockSize int) [][]rune {
+	newWidth := width / blockSize
+	newHeight := height / blockSize
+
+	shaderMap := make([][]rune, newHeight)
+	for i := range shaderMap {
+		shaderMap[i] = make([]rune, newWidth)
+	}
+
+	angleConversions := []rune{'_', '/', '|', '\\'}
+	for y := 0; y < height; y += blockSize {
+		for x := 0; x < width; x += blockSize {
+			// get the average angle in the block
+			angleBuckets := []int{0, 0, 0, 0}
+			for dy := 0; dy <= blockSize; dy++ {
+				for dx := 0; dx <= blockSize; dx++ {
+					if y+dy >= len(angleMap) || x+dx >= len(angleMap[0]) {
+						continue
+					}
+
+					if math.IsNaN(angleMap[y+dy][x+dx]) {
+						continue
+					}
+
+					var angle int = int(angleMap[y+dy][x+dx]) / 45
+					angleBuckets[angle]++
+				}
+			}
+			dominantAngle := 0
+			maxCount := 0
+
+			for angle, count := range angleBuckets {
+				if count > maxCount {
+					dominantAngle = angle
+					maxCount = count
+				}
+			}
+
+			if maxCount <= blockSize*2 {
+				shaderMap[y/blockSize][x/blockSize] = ' '
+			} else {
+				shaderMap[y/blockSize][x/blockSize] = angleConversions[dominantAngle]
+			}
+		}
+	}
+	fmt.Println("Shader map successfully generated.")
+	return shaderMap
 }
 
 func computeShaderMap(angleMap [][]float64, width, height int, blockSize int) image.Image {
@@ -110,38 +162,55 @@ func getSobelFilter(sourceImage image.Image) (image.Image, [][]float64) {
 	for i := range height {
 		angleMap[i] = make([]float64, width)
 	}
-	for y := 1; y < height-1; y++ {
-		for x := 1; x < width-1; x++ {
-			pixel_x, pixel_y := 0, 0
 
-			// convolve the image with the kernels
-			for dy := -1; dy < 2; dy++ {
-				for dx := -1; dx < 2; dx++ {
-					lum := utils.GetLuminance(sourceImage.At(x+dx, y+dy)) / 65535.0 * 255
-					pixel_x += int(lum * Gx[dx+1][dy+1])
-					pixel_y += int(lum * Gy[dx+1][dy+1])
+	numWorkers := runtime.NumCPU()
+	fmt.Println("Using", numWorkers, "workers for sobel filter.")
+	chunks := (height + numWorkers - 1) / numWorkers
+
+	var waitGroup sync.WaitGroup
+	for worker := 0; worker < numWorkers; worker++ {
+		startY := max(worker*chunks, 1)
+		endY := min((worker+1)*chunks, height-1)
+
+		waitGroup.Add(1)
+		go func(startY, endY int) {
+			defer waitGroup.Done()
+
+			for y := startY; y < endY; y++ {
+				for x := 1; x < width-1; x++ {
+					pixel_x, pixel_y := 0, 0
+
+					// convolve the image with the kernels
+					for dy := -1; dy < 2; dy++ {
+						for dx := -1; dx < 2; dx++ {
+							lum := utils.GetLuminance(sourceImage.At(x+dx, y+dy)) / 65535.0 * 255
+							pixel_x += int(lum * Gx[dx+1][dy+1])
+							pixel_y += int(lum * Gy[dx+1][dy+1])
+						}
+					}
+
+					// calculate the gradient magnitude
+					magnitude := int(math.Sqrt(float64(pixel_x*pixel_x + pixel_y*pixel_y)))
+					magnitude = int(math.Min(255, float64(magnitude)))
+
+					// normalize angle to range [-1, 1]
+					angle := math.Atan2(float64(pixel_y), float64(pixel_x))
+					angle = angle / math.Pi
+
+					// threshold so we don't get a bunch of noise
+					if magnitude >= 50 {
+						angleMap[y][x] = quantizeAngle(angle)
+					} else {
+						angleMap[y][x] = math.NaN()
+					}
+					// Set the pixel in the new image
+					img.SetGray(x, y, color.Gray{Y: uint8(magnitude)})
 				}
 			}
-
-			// calculate the gradient magnitude
-			magnitude := int(math.Sqrt(float64(pixel_x*pixel_x + pixel_y*pixel_y)))
-			magnitude = int(math.Min(255, float64(magnitude)))
-
-			// normalize angle to range [-1, 1]
-			angle := math.Atan2(float64(pixel_y), float64(pixel_x))
-			angle = angle / math.Pi
-
-			// threshold so we don't get a bunch of noise
-			if magnitude >= 50 {
-				angleMap[y][x] = quantizeAngle(angle)
-			} else {
-				angleMap[y][x] = math.NaN()
-			}
-			// Set the pixel in the new image
-			img.SetGray(x, y, color.Gray{Y: uint8(magnitude)})
-		}
+		}(startY, endY)
 	}
-	getAngleHeatmap(angleMap)
+
+	waitGroup.Wait()
 	return img, angleMap
 }
 

@@ -8,13 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
 var (
 	inverted           = true
-	monochrome         = true
+	monochrome         = false
 	crt                = false
 	bloom              = true
 	backgroundColorHex = "110301"
@@ -89,10 +90,6 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		inputImage := utils.LoadImage(inputPath)
-		fmt.Println("Image loaded successfully.")
-		reboundedImage := utils.BoundImageToScaleMultiple(inputImage, 8)
-
 		if backgroundColorHex[0] != '#' {
 			backgroundColorHex = "#" + backgroundColorHex
 		}
@@ -100,6 +97,10 @@ var rootCmd = &cobra.Command{
 		if baseColorHex[0] != '#' {
 			baseColorHex = "#" + baseColorHex
 		}
+
+		inputImage := utils.LoadImage(inputPath)
+		fmt.Println("Image loaded successfully.")
+		reboundedImage := utils.BoundImageToScaleMultiple(inputImage, 8)
 
 		backgroundColor, errBg := utils.ParseHexColorFast(backgroundColorHex)
 		if errBg != nil {
@@ -109,11 +110,12 @@ var rootCmd = &cobra.Command{
 		if errBase != nil {
 			panic("Error parsing base color.")
 		}
-
+		startTime := time.Now()
 		if outputFile == "output.png" {
 			inputFile := filepath.Base(inputPath)
 			outputFile := strings.Split(inputFile, ".")[0] + ".png"
 			outputPath := filepath.Join(outputDir, outputFile)
+			fmt.Println("monochrome: ", monochrome)
 
 			asciify.AsciifyWithEdges(reboundedImage, outputPath, fontPath, 8, backgroundColor, baseColor, bloom, crt, monochrome, inverted)
 			fmt.Println("Image saved to", outputPath)
@@ -122,7 +124,7 @@ var rootCmd = &cobra.Command{
 			asciify.AsciifyWithEdges(reboundedImage, outputPath, fontPath, 8, backgroundColor, baseColor, bloom, crt, monochrome, inverted)
 			fmt.Println("Image saved to", outputPath)
 		}
-
+		fmt.Println("Time taken:", time.Since(startTime))
 		// defer os.Remove(temporaryFontPath)
 	},
 }

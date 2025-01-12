@@ -22,6 +22,16 @@ func GenerateBrightnessPalette(baseColor color.Color, shades int) []color.Color 
 }
 
 // bloom: extract the highlights -> gaussian blur the highlighted image -> combine with original
+
+// create a soft threshold so that the bloom effect fades in instead of being abrupt
+func SoftThreshold(val, thresh float64) float64 {
+	if val < thresh {
+		return 0
+	}
+	return (val - thresh) / (255 - thresh)
+}
+
+// finds the highlights in the image, notably the bright ones where light will "bleed" into other pixels.
 func ExtractHighlights(img image.Image, thresh float64) image.Image {
 	width := img.Bounds().Dx()
 	height := img.Bounds().Dy()
@@ -30,12 +40,14 @@ func ExtractHighlights(img image.Image, thresh float64) image.Image {
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			r, g, b, a := img.At(x, y).RGBA()
-			averageBrightness := (r + g + b) / 65535.0 / 3
-			if float64(averageBrightness) > thresh {
-				brightnessPass.Set(x, y, color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)})
-			} else {
-				brightnessPass.Set(x, y, color.RGBA{0, 0, 0, 0})
-			}
+			brightness := 0.2126*float64(r>>8) + 0.7152*float64(g>>8) + 0.0722*float64(b>>8)
+			scaled := SoftThreshold(brightness, thresh*255)
+			brightnessPass.Set(x, y, color.RGBA{
+				uint8(scaled * float64(r>>8)),
+				uint8(scaled * float64(g>>8)),
+				uint8(scaled * float64(b>>8)),
+				uint8(a >> 8),
+			})
 		}
 	}
 
@@ -71,9 +83,29 @@ func MergeImages(base, bloom image.Image, intensity float64) image.Image {
 	return combined
 }
 
+func TintImage(img image.Image, tint color.RGBA) image.Image {
+	width := img.Bounds().Dx()
+	height := img.Bounds().Dy()
+	tinted := image.NewRGBA(img.Bounds())
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			r, g, b, a := img.At(x, y).RGBA()
+			tinted.Set(x, y, color.RGBA{
+				R: uint8(float64(r>>8) * float64(tint.R) / 255),
+				G: uint8(float64(g>>8) * float64(tint.G) / 255),
+				B: uint8(float64(b>>8) * float64(tint.B) / 255),
+				A: uint8(a >> 8),
+			})
+		}
+	}
+
+	return tinted
+}
+
 func BloomImage(img image.Image, blurSigma, bloomThreshold, bloomIntensity float64) image.Image {
 	brightnessMap := ExtractHighlights(img, bloomThreshold)
-	blurredBrightness := GaussianBlur(brightnessMap, blurSigma)
+	blurredBrightness := FastGaussianBlur(brightnessMap, blurSigma)
 
 	return MergeImages(img, blurredBrightness, bloomIntensity)
 }
