@@ -139,7 +139,7 @@ func TintImage(img image.Image, tint color.RGBA) image.Image {
 
 func BloomImage(img image.Image, blurSigma, bloomThreshold, bloomIntensity float64) image.Image {
 	brightnessMap := ExtractHighlights(img, bloomThreshold)
-	blurredBrightness := FastGaussianBlur(brightnessMap, blurSigma)
+	blurredBrightness := GaussianBlurApprox(brightnessMap, blurSigma)
 
 	return MergeImages(img, blurredBrightness, bloomIntensity)
 }

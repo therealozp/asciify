@@ -3,6 +3,7 @@ package utils
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 )
 
@@ -100,7 +101,7 @@ func FastGaussianBlur(img image.Image, sigma float64) image.Image {
 				if y+dy < 0 || y+dy >= width {
 					continue
 				}
-				r, g, b, _ := img.At(x, y+dy).RGBA()
+				r, g, b, _ := horizontal.At(x, y+dy).RGBA()
 				weight := kernel[dy+kernelSize]
 				sumR += float64(r>>8) * weight
 				sumG += float64(g>>8) * weight
@@ -114,7 +115,7 @@ func FastGaussianBlur(img image.Image, sigma float64) image.Image {
 				B: uint8(sumB / kernelSum),
 				A: 255,
 			}
-			horizontal.Set(x, y, rgbaColor)
+			blurred.Set(x, y, rgbaColor)
 		}
 	}
 
@@ -161,4 +162,133 @@ func PolynomialGaussianBlur(img image.Image, sigma float64) image.Image {
 	}
 
 	return blurred
+}
+
+// BoxKernel approximates a Gaussian blur by computing three box filter sizes
+func BoxKernel(sigma float64, nBoxes int) []int {
+	kernelValue := math.Sqrt((12 * sigma * sigma / float64(nBoxes)) + 1)
+	if int(kernelValue)%2 == 0 {
+		kernelValue -= 1
+	}
+
+	thresh := int((12.0*sigma*sigma - float64(nBoxes)*kernelValue*kernelValue - 4.0*float64(nBoxes)*kernelValue - 3*float64(nBoxes)) / (-4.0*kernelValue - 4.0))
+
+	boxSizes := make([]int, nBoxes)
+	for i := 0; i < nBoxes; i++ {
+		if i < thresh {
+			boxSizes[i] = int(kernelValue)
+		} else {
+			boxSizes[i] = int(kernelValue) + 2
+		}
+	}
+	return boxSizes
+}
+
+// ApplyBoxBlur applies a single box blur pass (horizontal + vertical)
+func ApplyBoxBlur(src *image.Gray, radius int) *image.Gray {
+	w, h := src.Bounds().Dx(), src.Bounds().Dy()
+	temp := image.NewGray(src.Bounds())
+	dst := image.NewGray(src.Bounds())
+
+	// Copy original data to temp image
+	draw.Draw(temp, temp.Bounds(), src, image.Point{}, draw.Src)
+
+	// Apply horizontal blur
+	BoxBlurHorizontal(temp, dst, w, h, radius)
+
+	// Apply vertical blur
+	BoxBlurVertical(dst, temp, w, h, radius)
+
+	return temp
+}
+
+// BoxBlurHorizontal applies horizontal box blur pass
+func BoxBlurHorizontal(src, dst *image.Gray, w, h, radius int) {
+	iarr := 1.0 / float64(radius*2+1)
+
+	for y := 0; y < h; y++ {
+		li, ri := y*w, y*w+radius
+		ti := y * w
+		fv, lv := src.GrayAt(li, 0).Y, src.GrayAt(li+w-1, 0).Y
+		val := float64((radius + 1) * int(fv))
+
+		for j := 0; j < radius; j++ {
+			val += float64(src.GrayAt(ti+j, 0).Y)
+		}
+
+		for j := 0; j <= radius; j++ {
+			val += float64(src.GrayAt(ri, 0).Y) - float64(fv)
+			dst.SetGray(ti, y, color.Gray{Y: uint8(math.Round(val * iarr))})
+			ti++
+			ri++
+		}
+
+		for j := radius + 1; j < w-radius; j++ {
+			val += float64(src.GrayAt(ri, 0).Y) - float64(src.GrayAt(li, 0).Y)
+			dst.SetGray(ti, y, color.Gray{Y: uint8(math.Round(val * iarr))})
+			li++
+			ri++
+			ti++
+		}
+
+		for j := w - radius; j < w; j++ {
+			val += float64(lv) - float64(src.GrayAt(li, 0).Y)
+			dst.SetGray(ti, y, color.Gray{Y: uint8(math.Round(val * iarr))})
+			li++
+			ti++
+		}
+	}
+}
+
+// BoxBlurVertical applies vertical box blur pass
+func BoxBlurVertical(src, dst *image.Gray, w, h, radius int) {
+	iarr := 1.0 / float64(radius*2+1)
+
+	for x := 0; x < w; x++ {
+		ti, li, ri := x, x, x+radius*w
+		fv, lv := src.GrayAt(x, 0).Y, src.GrayAt(x, h-1).Y
+		val := float64((radius + 1) * int(fv))
+
+		for j := 0; j < radius; j++ {
+			val += float64(src.GrayAt(x, j*w).Y)
+		}
+
+		for j := 0; j <= radius; j++ {
+			val += float64(src.GrayAt(ri, 0).Y) - float64(fv)
+			dst.SetGray(x, ti, color.Gray{Y: uint8(math.Round(val * iarr))})
+			ri += w
+			ti += w
+		}
+
+		for j := radius + 1; j < h-radius; j++ {
+			val += float64(src.GrayAt(ri, 0).Y) - float64(src.GrayAt(li, 0).Y)
+			dst.SetGray(x, ti, color.Gray{Y: uint8(math.Round(val * iarr))})
+			li += w
+			ri += w
+			ti += w
+		}
+
+		for j := h - radius; j < h; j++ {
+			val += float64(lv) - float64(src.GrayAt(li, 0).Y)
+			dst.SetGray(x, ti, color.Gray{Y: uint8(math.Round(val * iarr))})
+			li += w
+			ti += w
+		}
+	}
+}
+
+// GaussianBlurApprox approximates Gaussian blur using three box blurs
+func GaussianBlurApprox(img image.Image, sigma float64) image.Image {
+	gray := image.NewGray(img.Bounds())
+	draw.Draw(gray, gray.Bounds(), img, image.Point{}, draw.Src)
+
+	// Compute optimal box sizes
+	boxes := BoxKernel(sigma, 3)
+
+	// Apply three box blurs in sequence
+	for _, boxSize := range boxes {
+		gray = ApplyBoxBlur(gray, (boxSize-1)/2)
+	}
+
+	return gray
 }
