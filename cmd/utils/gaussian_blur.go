@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -284,6 +285,7 @@ func GaussianBlurApprox(img image.Image, sigma float64) image.Image {
 
 	// Compute optimal box sizes
 	boxes := BoxKernel(sigma, 3)
+	fmt.Println(boxes)
 
 	// Apply three box blurs in sequence
 	for _, boxSize := range boxes {

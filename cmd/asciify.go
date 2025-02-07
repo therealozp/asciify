@@ -149,6 +149,13 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 	_, angleMap := getSobelFilter(sourceImage)
 	edgeMap := optimizedShaderMap(angleMap, width, height, scaleFactor)
 
+	var colorMap image.Image
+	if bloom {
+		colorMap = utils.BloomImage(downscaled, 2, 235, 5).(*image.RGBA)
+	} else {
+		colorMap = downscaled
+	}
+
 	// Set the background color for the output image
 	if monochrome {
 		draw.Draw(img, img.Bounds(), image.NewUniform(backgroundColor), image.Point{}, draw.Src)
@@ -171,7 +178,7 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 	for y := downscaled.Bounds().Min.Y; y < downscaled.Bounds().Max.Y; y++ {
 		for x := downscaled.Bounds().Min.X; x < downscaled.Bounds().Max.X; x++ {
 			// Default character based on luminance
-			c := downscaled.At(x, y)
+			c := colorMap.At(x, y)
 			asciiChar := utils.GetLuminanceCharacter(c)
 			if edgeMap[y][x] != ' ' {
 				asciiChar = edgeMap[y][x]
@@ -194,9 +201,6 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 		}
 	}
 
-	if bloom {
-		img = utils.BloomImage(img, 3, 235, 6).(*image.RGBA)
-	}
 	if burn {
 		img = utils.ApplyColorBurn(img, 1.2).(*image.RGBA)
 	}

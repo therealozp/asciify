@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -62,7 +63,7 @@ func SoftThreshold(val, thresh float64) float64 {
 	if val < thresh {
 		return 0
 	}
-	return (val - thresh) / (255 - thresh)
+	return val
 }
 
 // finds the highlights in the image, notably the bright ones where light will "bleed" into other pixels.
@@ -75,11 +76,13 @@ func ExtractHighlights(img image.Image, thresh float64) image.Image {
 		for x := 0; x < width; x++ {
 			r, g, b, a := img.At(x, y).RGBA()
 			brightness := 0.2126*float64(r>>8) + 0.7152*float64(g>>8) + 0.0722*float64(b>>8)
-			scaled := SoftThreshold(brightness, thresh*255)
+			if brightness < thresh {
+				continue
+			}
 			brightnessPass.Set(x, y, color.RGBA{
-				uint8(scaled * float64(r>>8)),
-				uint8(scaled * float64(g>>8)),
-				uint8(scaled * float64(b>>8)),
+				uint8(float64(r >> 8)),
+				uint8(float64(g >> 8)),
+				uint8(float64(b >> 8)),
 				uint8(a >> 8),
 			})
 		}
@@ -139,7 +142,13 @@ func TintImage(img image.Image, tint color.RGBA) image.Image {
 
 func BloomImage(img image.Image, blurSigma, bloomThreshold, bloomIntensity float64) image.Image {
 	brightnessMap := ExtractHighlights(img, bloomThreshold)
-	blurredBrightness := GaussianBlurApprox(brightnessMap, blurSigma)
+	SaveImage(brightnessMap, "brightness.png")
+	blurredBrightness, err := StackBlur(brightnessMap, 3*uint32(blurSigma))
+	if err != nil {
+		fmt.Println("error blurring brightness map in BloomImage.")
+		panic(err)
+	}
+	SaveImage(blurredBrightness, "blurred_brightness.png")
 
 	return MergeImages(img, blurredBrightness, bloomIntensity)
 }

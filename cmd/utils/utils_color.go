@@ -20,8 +20,8 @@ func LuminanceToBrightness(lum float64) float64 {
 	// Send this function a luminance value between 0.0 and 1.0,
 	// and it returns L* which is "perceptual lightness"
 
-	if lum <= (216.0 / 24389.0) { // The CIE standard states 0.008856 but 216/24389 is the intent for 0.008856451679036
-		return lum * (24389.0 / 27.0) // The CIE standard states 903.3, but 24389/27 is the intent, making 903.296296296296296
+	if lum <= (216.0 / 24389.0) {
+		return lum * (24389.0 / 27.0)
 	} else {
 		return math.Pow(lum, (1.0/3.0))*116 - 16
 	}
