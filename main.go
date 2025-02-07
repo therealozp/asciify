@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	inverted           = true
+	burn               = true
 	monochrome         = false
 	crt                = false
 	bloom              = true
@@ -23,6 +23,7 @@ var (
 	outputDir          string
 	outputFile         string
 	scaleFactor        int
+	bloomThreshold     = 235
 )
 
 func getDefaultSaveDir() (string, error) {
@@ -73,9 +74,10 @@ func setupFontPath() (string, error) {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "asciify",
-	Short: "a CLI tool for converting an image to ASCII art",
-	Long:  "asciify converts whichever image you choose to an ASCII art representation, complete with different processing effects and extended color options.",
+	Use:     "asciify",
+	Short:   "a CLI tool for converting an image to ASCII art",
+	Version: "v1.0.0",
+	Long:    "asciify converts whichever image you choose to an ASCII art representation, complete with different processing effects and extended color options.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			fmt.Println("Please provide a path to an image file. Run 'asciify --help' for more information.")
@@ -111,19 +113,16 @@ var rootCmd = &cobra.Command{
 			panic("Error parsing base color.")
 		}
 		startTime := time.Now()
+		outputFileName := outputFile
 		if outputFile == "output.png" {
 			inputFile := filepath.Base(inputPath)
-			outputFile := strings.Split(inputFile, ".")[0] + ".png"
-			outputPath := filepath.Join(outputDir, outputFile)
-			fmt.Println("monochrome: ", monochrome)
-
-			asciify.AsciifyWithEdges(reboundedImage, outputPath, fontPath, 8, backgroundColor, baseColor, bloom, crt, monochrome, inverted)
-			fmt.Println("Image saved to", outputPath)
-		} else {
-			outputPath := filepath.Join(outputDir, outputFile)
-			asciify.AsciifyWithEdges(reboundedImage, outputPath, fontPath, 8, backgroundColor, baseColor, bloom, crt, monochrome, inverted)
-			fmt.Println("Image saved to", outputPath)
+			outputFileName = strings.Split(inputFile, ".")[0] + ".png"
 		}
+		outputPath := filepath.Join(outputDir, outputFileName)
+		fmt.Println("monochrome: ", monochrome)
+
+		asciify.AsciifyImage(reboundedImage, outputPath, fontPath, 8, bloomThreshold, backgroundColor, baseColor, bloom, crt, monochrome, burn)
+		fmt.Println("Image saved to", outputPath)
 		fmt.Println("Time taken:", time.Since(startTime))
 		// defer os.Remove(temporaryFontPath)
 	},
@@ -145,12 +144,13 @@ func init() {
 	rootCmd.Flags().StringVarP(&outputDir, "directory", "d", defaultSaveDir, "Path to save the output image. Default: ~/asciify")
 	rootCmd.Flags().StringVarP(&outputFile, "file", "f", "output.png", "Name of the .png output file")
 	rootCmd.Flags().IntVarP(&scaleFactor, "scale", "s", 8, "Scale factor for resizing")
+	rootCmd.Flags().IntVarP(&bloomThreshold, "thresh", "t", 235, "Threshold for which pixel values are considered bright enough to bloom (emit light)")
 
 	// Flags for effects
-	rootCmd.Flags().BoolVar(&inverted, "inverted", true, "Invert the ASCII output")
-	rootCmd.Flags().BoolVar(&monochrome, "monochrome", true, "Use monochrome ASCII. If disabled, the ASCII output will be colored to the original image.")
+	rootCmd.Flags().BoolVarP(&burn, "burn", "r", false, "Color burn the resulting ASCII image")
+	rootCmd.Flags().BoolVarP(&monochrome, "monochrome", "m", false, "Use monochrome ASCII. If disabled, the ASCII output will be colored to the original image.")
 	rootCmd.Flags().BoolVar(&crt, "crt", false, "Apply CRT effect")
-	rootCmd.Flags().BoolVar(&bloom, "bloom", true, "Apply bloom effect")
+	rootCmd.Flags().BoolVarP(&bloom, "bloom", "b", false, "Apply bloom effect")
 }
 
 func main() {

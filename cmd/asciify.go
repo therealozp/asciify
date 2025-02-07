@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"asciify/cmd/utils"
-	"bufio"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"log"
 	"os"
 
@@ -43,101 +41,7 @@ func drawCharacter(img *image.RGBA, pos image.Point, c rune, face font.Face, sca
 	d.DrawString(string(c))
 }
 
-func AsciiToImage(asciiPath string, outputPath string, fontPath string, originalWidth, originalHeight int, inverted bool) {
-	// create the canvas
-	img := image.NewRGBA(image.Rect(0, 0, originalWidth, originalHeight))
-	if inverted {
-		draw.Draw(img, img.Bounds(), image.Black, image.Point{}, draw.Src)
-	} else {
-		draw.Draw(img, img.Bounds(), image.White, image.Point{}, draw.Src)
-	}
-
-	// load font
-	fontSize := 8.0
-	face, err := loadFont(fontPath, fontSize)
-	if err != nil {
-		panic(err)
-	}
-
-	// load ascii file
-	ascii_file, err := os.Open(asciiPath)
-	if err != nil {
-		panic(err)
-	}
-
-	// use a scanner to read the ascii characters
-	scanner := bufio.NewScanner(ascii_file)
-	y := 0
-
-	// draw the ascii characters
-	for scanner.Scan() {
-		line := scanner.Text()
-		if inverted {
-			for x, char := range line {
-				drawCharacter(img, image.Pt(x, y), char, face, int(fontSize), image.White)
-			}
-		} else {
-			for x, char := range line {
-				drawCharacter(img, image.Pt(x, y), char, face, int(fontSize), image.Black)
-			}
-		}
-
-		y++
-	}
-
-	output_file, err := os.Create(outputPath)
-	if err != nil {
-		panic(err)
-	}
-	defer output_file.Close()
-
-	if err := png.Encode(output_file, img); err != nil {
-		panic(err)
-	}
-}
-
-func AsciifyImage(sourceImage image.Image, outputPath string, fontPath string, width, height, scaleFactor int, monochrome bool, inverted bool) {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	d_width, d_height, downscaled := utils.DownscaleImage(sourceImage, scaleFactor)
-
-	if monochrome {
-		if inverted {
-			draw.Draw(img, img.Bounds(), image.White, image.Point{}, draw.Src)
-		} else {
-			draw.Draw(img, img.Bounds(), image.Black, image.Point{}, draw.Src)
-		}
-	} else {
-		draw.Draw(img, img.Bounds(), image.Black, image.Point{}, draw.Src)
-	}
-
-	fontSize := 8.0
-	face, err := loadFont(fontPath, fontSize)
-	if err != nil {
-		fmt.Println("Error loading font: ", err)
-		log.Fatal(err)
-	}
-
-	for y := 0; y < d_height; y++ {
-		for x := 0; x < d_width; x++ {
-			c := downscaled.At(x, y)
-			r, g, b, a := c.RGBA()
-			// have to bit shift from 16 bit to 8 bit
-			if !monochrome {
-				drawCharacter(img, image.Pt(x, y), utils.GetLuminanceCharacter(c), face, scaleFactor, color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)})
-			} else {
-				if inverted {
-					drawCharacter(img, image.Pt(x, y), utils.GetLuminanceCharacter(c), face, scaleFactor, color.White)
-				} else {
-					drawCharacter(img, image.Pt(x, y), utils.GetLuminanceCharacter(c), face, scaleFactor, color.Black)
-				}
-			}
-		}
-		// fmt.Println()
-	}
-	utils.SaveImage(img, outputPath)
-}
-
-func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scaleFactor int, backgroundColor, baseColor color.Color, bloom, crt, monochrome, burn bool) {
+func AsciifyImage(sourceImage image.Image, outputPath, fontPath string, scaleFactor, bloomThreshold int, backgroundColor, baseColor color.Color, bloom, crt, monochrome, burn bool) {
 	width := sourceImage.Bounds().Dx()
 	height := sourceImage.Bounds().Dy()
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
@@ -151,7 +55,7 @@ func AsciifyWithEdges(sourceImage image.Image, outputPath, fontPath string, scal
 
 	var colorMap image.Image
 	if bloom {
-		colorMap = utils.BloomImage(downscaled, 2, 235, 5).(*image.RGBA)
+		colorMap = utils.BloomImage(downscaled, 2, float64(bloomThreshold), 5).(*image.RGBA)
 	} else {
 		colorMap = downscaled
 	}
