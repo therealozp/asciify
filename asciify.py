@@ -45,7 +45,7 @@ def optimized_shader_map(angle_map, block_size):
     new_h, new_w = h // block_size, w // block_size
 
     shader_map = [[" " for _ in range(new_w)] for _ in range(new_h)]
-    angle_conversions = {0: "_", 45: "/", 90: "l", 135: "\\"}
+    angle_conversions = {0: "-", 45: "/", 90: "l", 135: "\\"}
 
     for y in range(new_h):
         for x in range(new_w):
@@ -185,7 +185,7 @@ def asciify_to_text(
                 else:
                     row_chars.append(lum_chars[y, x])
 
-            f.write("".join(row_chars) + "\n")
+            f.write("".join(row_chars) + "\r\n")
 
     print(f"Successfully generated ASCII text file at: {output_txt_path}")
 
