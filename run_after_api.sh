@@ -1,0 +1,1 @@
+cat output_face.txt | xargs -0 echo -en | sudo tee /dev/usb/lp0

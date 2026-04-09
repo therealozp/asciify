@@ -131,8 +131,8 @@ def get_sobel_filter(image):
     return magnitude, angle_map
 
 
-def get_luminance_characters(gray_image):
-    chars = np.array(list(" .:-=+*#%@"))
+def get_luminance_characters(gray_image, reversed=True):
+    chars = np.array(list(" .:-=+*#%@")[:: -1 if reversed else 1])
     normalized = (gray_image / 255.0) * (len(chars) - 1)
     indices = np.round(normalized).astype(int)
 
@@ -177,6 +177,59 @@ def asciify_to_text(
 
     # 4. Merge the edge map and luminance map, then write to file
     with open(output_txt_path, "w", encoding="utf-8") as f:
+        f.write("\eA\x05\e2\r\n")
+        for y in range(new_h):
+            row_chars = []
+            for x in range(new_w):
+                if edge_map[y][x] != " ":
+                    row_chars.append(edge_map[y][x])
+                else:
+                    row_chars.append(lum_chars[y, x])
+
+            f.write("".join(row_chars) + "\r\n")
+
+    print(f"Successfully generated ASCII text file at: {output_txt_path}")
+
+
+def asciify_from_raw_image(
+    raw_image,
+    output_txt_path,
+    scale_factor=4,
+    max_width_chars=None,
+    max_height_chars=None,
+):
+    """
+    Converts an image to an ASCII text file using Sobel edge maps and luminance.
+    """
+    img = raw_image
+    if img is None:
+        print("Error: Could not load image.")
+        return
+
+    h, w = img.shape[:2]
+
+    new_w = w // scale_factor
+    new_h = h // scale_factor
+
+    if max_width_chars is not None and max_height_chars is not None:
+        scale_h = int(h / max_height_chars)
+        scale_w = int(w / max_width_chars)
+
+        scale_factor = max(scale_h, scale_w)
+        new_w = w // scale_factor
+        new_h = h // scale_factor
+
+    downscaled = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    gray_downscaled = cv2.cvtColor(downscaled, cv2.COLOR_BGR2GRAY)
+
+    _, angle_map = get_sobel_filter(img)
+    edge_map = optimized_shader_map(angle_map, scale_factor)
+
+    lum_chars = get_luminance_characters(gray_downscaled)
+
+    # 4. Merge the edge map and luminance map, then write to file
+    with open(output_txt_path, "w", encoding="utf-8") as f:
+        f.write("\eA\x05\e2\r\n")
         for y in range(new_h):
             row_chars = []
             for x in range(new_w):
@@ -214,18 +267,18 @@ if __name__ == "__main__":
         help="Scale factor for downsampling (default: 4)",
     )
     parser.add_argument(
-        "-w",
+        "-W",
         "--width",
         type=int,
-        default=235,
-        help="Maximum width in characters (default: 235)",
+        default=50,
+        help="Maximum width in characters (default: 50)",
     )
     parser.add_argument(
         "-H",
         "--height",
         type=int,
-        default=132,
-        help="Maximum height in characters (default: 132)",
+        default=28,
+        help="Maximum height in characters (default: 28)",
     )
 
     args = parser.parse_args()
