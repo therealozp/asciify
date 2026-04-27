@@ -131,11 +131,11 @@ def get_sobel_filter(image):
     return magnitude, angle_map
 
 
-def get_luminance_characters(gray_image, reversed=True):
+def get_luminance_characters(gray_image, reversed=True, gamma=1.0):
     chars = np.array(list(" .:-=+*#%@")[:: -1 if reversed else 1])
-    normalized = (gray_image / 255.0) * (len(chars) - 1)
-    indices = np.round(normalized).astype(int)
+    normalized = (gray_image / 255.0) ** gamma  # Apply gamma correction
 
+    indices = np.round(normalized * (len(chars) - 1)).astype(int)
     return chars[indices]
 
 
@@ -197,6 +197,7 @@ def asciify_from_raw_image(
     scale_factor=4,
     max_width_chars=None,
     max_height_chars=None,
+    gamma=1.0,
 ):
     """
     Converts an image to an ASCII text file using Sobel edge maps and luminance.
@@ -225,8 +226,8 @@ def asciify_from_raw_image(
     _, angle_map = get_sobel_filter(img)
     edge_map = optimized_shader_map(angle_map, scale_factor)
 
-    lum_chars = get_luminance_characters(gray_downscaled)
-
+    lum_chars = get_luminance_characters(gray_downscaled, gamma=gamma)
+    lines = []
     # 4. Merge the edge map and luminance map, then write to file
     with open(output_txt_path, "w", encoding="utf-8") as f:
         f.write("\eA\x05\e2\r\n")
@@ -237,10 +238,11 @@ def asciify_from_raw_image(
                     row_chars.append(edge_map[y][x])
                 else:
                     row_chars.append(lum_chars[y, x])
-
+            lines.append("".join(row_chars))
             f.write("".join(row_chars) + "\r\n")
 
     print(f"Successfully generated ASCII text file at: {output_txt_path}")
+    return lines
 
 
 if __name__ == "__main__":

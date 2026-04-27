@@ -2,6 +2,7 @@ import cv2
 import subprocess
 from asciify import asciify_from_raw_image
 from ultralytics import YOLO
+import numpy as np
 
 # --- CONFIGURATION ---
 MODEL_PATH = "yolov8n-face.pt"  # Replace with your local YOLO face model
@@ -95,31 +96,64 @@ def main():
 
             # 3. Handle Approve ('O')
             elif key == ord("o"):
-                print("Capture approved. Processing...")
+                print("Capture approved. Processing ASCII preview...")
                 cv2.destroyWindow("Preview (O=Approve, C=Cancel)")
 
-                try:
-                    asciify_from_raw_image(
-                        best_face_crop,
-                        "output_face.txt",
-                        max_width_chars=64,
-                        max_height_chars=64,
-                    )
+                # Generate ASCII but don't write file yet
+                lines = asciify_from_raw_image(
+                    best_face_crop,
+                    output_txt_path=None,  # skip writing
+                    max_width_chars=64,
+                    max_height_chars=64,
+                )
 
-                    # --- Execute Bash Script ---
-                    print(f"Executing bash script: {BASH_SCRIPT_PATH}...")
+                if lines:
+                    # Render ASCII into an OpenCV image for preview
+                    font = cv2.FONT_HERSHEY_PLAIN
+                    font_scale = 0.6
+                    thickness = 1
+                    char_w, char_h = 6, 10  # approx px per char at this scale
 
-                    # Uncomment the next line when your bash script is ready:
-                    subprocess.run(["/bin/bash", BASH_SCRIPT_PATH], check=True)
-                    # print("Bash script executed successfully.")
+                    canvas_h = len(lines) * char_h + 10
+                    canvas_w = max(len(l) for l in lines) * char_w + 10
+                    canvas = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
 
-                except subprocess.CalledProcessError as e:
-                    print(f"Bash Script Error: {e}")
-                except Exception as e:
-                    print(f"An unexpected error occurred: {e}")
+                    for i, line in enumerate(lines):
+                        cv2.putText(
+                            canvas,
+                            line,
+                            (4, (i + 1) * char_h),
+                            font,
+                            font_scale,
+                            (200, 200, 200),
+                            thickness,
+                        )
 
-                # Go back to webcam stream after processing finishes
-                print("Returning to live stream...")
+                    cv2.imshow("ASCII Preview (O=Save, C=Cancel)", canvas)
+
+                    while True:
+                        k = cv2.waitKey(0) & 0xFF
+                        if k == ord("o"):
+                            cv2.destroyWindow("ASCII Preview (O=Save, C=Cancel)")
+                            # Now write the file
+                            asciify_from_raw_image(
+                                best_face_crop,
+                                "output_face.txt",
+                                max_width_chars=64,
+                                max_height_chars=64,
+                            )
+                            try:
+                                subprocess.run(
+                                    ["/bin/bash", BASH_SCRIPT_PATH], check=True
+                                )
+                            except subprocess.CalledProcessError as e:
+                                print(f"Bash Script Error: {e}")
+                            break
+                        elif k == ord("c"):
+                            cv2.destroyWindow("ASCII Preview (O=Save, C=Cancel)")
+                            print("ASCII discarded. Returning to stream...")
+                            break
+
                 state = "STREAM"
 
     # Cleanup
