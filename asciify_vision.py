@@ -96,23 +96,27 @@ def main():
 
             # 3. Handle Approve ('O')
             elif key == ord("o"):
-                print("Capture approved. Processing ASCII preview...")
+                print("Capture approved. Generating ASCII preview...")
                 cv2.destroyWindow("Preview (O=Approve, C=Cancel)")
 
-                # Generate ASCII but don't write file yet
-                lines = asciify_from_raw_image(
-                    best_face_crop,
-                    output_txt_path=None,  # skip writing
-                    max_width_chars=64,
-                    max_height_chars=64,
-                )
+                font = cv2.FONT_HERSHEY_PLAIN
+                font_scale = 0.6
+                thickness = 1
+                char_w, char_h = 6, 10
 
-                if lines:
-                    # Render ASCII into an OpenCV image for preview
-                    font = cv2.FONT_HERSHEY_PLAIN
-                    font_scale = 0.6
-                    thickness = 1
-                    char_w, char_h = 6, 10  # approx px per char at this scale
+                gamma = 1.0
+                GAMMA_STEP = 0.1
+
+                def render_ascii_canvas(face_crop, gamma):
+                    lines = asciify_from_raw_image(
+                        face_crop,
+                        output_txt_path=None,
+                        max_width_chars=64,
+                        max_height_chars=64,
+                        gamma=gamma,
+                    )
+                    if not lines:
+                        return None, lines
 
                     canvas_h = len(lines) * char_h + 10
                     canvas_w = max(len(l) for l in lines) * char_w + 10
@@ -129,18 +133,37 @@ def main():
                             thickness,
                         )
 
-                    cv2.imshow("ASCII Preview (O=Save, C=Cancel)", canvas)
+                    # HUD: show current gamma
+                    label = f"gamma={gamma:.2f}  (+/- to adjust, O=Save, C=Cancel)"
+                    cv2.putText(
+                        canvas,
+                        label,
+                        (4, canvas_h - 2),
+                        font,
+                        font_scale,
+                        (80, 200, 80),
+                        thickness,
+                    )
+
+                    return canvas, lines
+
+                canvas, lines = render_ascii_canvas(best_face_crop, gamma)
+
+                if canvas is not None:
+                    cv2.imshow("ASCII Preview", canvas)
 
                     while True:
                         k = cv2.waitKey(0) & 0xFF
+
                         if k == ord("o"):
-                            cv2.destroyWindow("ASCII Preview (O=Save, C=Cancel)")
-                            # Now write the file
+                            cv2.destroyWindow("ASCII Preview")
+                            # Write file with current gamma
                             asciify_from_raw_image(
                                 best_face_crop,
                                 "output_face.txt",
                                 max_width_chars=64,
                                 max_height_chars=64,
+                                gamma=gamma,
                             )
                             try:
                                 subprocess.run(
@@ -149,10 +172,21 @@ def main():
                             except subprocess.CalledProcessError as e:
                                 print(f"Bash Script Error: {e}")
                             break
+
                         elif k == ord("c"):
-                            cv2.destroyWindow("ASCII Preview (O=Save, C=Cancel)")
+                            cv2.destroyWindow("ASCII Preview")
                             print("ASCII discarded. Returning to stream...")
                             break
+
+                        elif k == ord("+") or k == ord("="):  # = is unshifted +
+                            gamma = round(min(gamma + GAMMA_STEP, 5.0), 2)
+                            canvas, lines = render_ascii_canvas(best_face_crop, gamma)
+                            cv2.imshow("ASCII Preview", canvas)
+
+                        elif k == ord("-"):
+                            gamma = round(max(gamma - GAMMA_STEP, 0.1), 2)
+                            canvas, lines = render_ascii_canvas(best_face_crop, gamma)
+                            cv2.imshow("ASCII Preview", canvas)
 
                 state = "STREAM"
 
