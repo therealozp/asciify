@@ -205,7 +205,7 @@ def main():
             # If a face is found, draw the bounding box and prep the crop
             if best_box is not None:
                 x1, y1, x2, y2 = map(int, best_box.xyxy[0])
-                expansion = 0.2
+                expansion = 0.4
                 dist_x = int((x2 - x1) * expansion)
                 dist_y = int((y2 - y1) * expansion)
 
