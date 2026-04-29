@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
 # --- CONFIGURATION ---
-MODEL_PATH = "yolov8n-face.pt"  # Replace with your local YOLO face model
+MODEL_PATH = "yolov12n-face.pt"  # Replace with your local YOLO face model
 BASH_SCRIPT_PATH = "./run_after_api.sh"
 
 
