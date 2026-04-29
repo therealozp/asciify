@@ -253,7 +253,6 @@ def main():
                     print("No face detected to capture!")
 
         elif state == "PREVIEW":
-            # 2. Freeze frame and show preview
             cv2.imshow("Preview (O=Approve, C=Cancel)", best_face_crop)
 
             key = cv2.waitKey(1) & 0xFF
@@ -273,33 +272,44 @@ def main():
                 GAMMA_STEP = 0.1
 
                 preview_cv2, print_canvas, lines = render_print_ready_canvas(
-                    best_face_crop, gamma
+                    best_face_crop, gamma, font_size=18
                 )
 
                 if preview_cv2 is not None:
                     cv2.imshow("ASCII Preview", preview_cv2)
                     key = cv2.waitKey(0)
 
-                    if key == ord("o") or key == ord("O"):
-                        # Save the high-res PIL Image directly as a 300 DPI PDF
-                        pdf_filename = "printable_ascii.pdf"
-                        print_canvas.save(pdf_filename, "PDF", resolution=300)
-                        print(f"Saved print-ready document to {pdf_filename}")
+                    while True:
+                        k = cv2.waitKey(0) & 0xFF
 
-                    elif key == ord("c"):
-                        cv2.destroyWindow("ASCII Preview")
-                        print("ASCII discarded. Returning to stream...")
-                        break
+                        if k == ord("o"):
+                            cv2.destroyWindow("ASCII Preview")
+                            pdf_filename = "printable_ascii.pdf"
+                            print_canvas.save(pdf_filename, "PDF", resolution=300)
+                            print(f"Saved print-ready document to {pdf_filename}")
 
-                    elif key == ord("+") or key == ord("="):  # = is unshifted +
-                        gamma = round(min(gamma + GAMMA_STEP, 5.0), 2)
-                        canvas, lines = render_ascii_canvas(best_face_crop, gamma)
-                        cv2.imshow("ASCII Preview", canvas)
+                        elif k == ord("c"):
+                            cv2.destroyWindow("ASCII Preview")
+                            print("ASCII discarded. Returning to stream...")
+                            break
 
-                    elif key == ord("-"):
-                        gamma = round(max(gamma - GAMMA_STEP, 0.1), 2)
-                        canvas, lines = render_ascii_canvas(best_face_crop, gamma)
-                        cv2.imshow("ASCII Preview", canvas)
+                        elif k == ord("+") or k == ord("="):  # = is unshifted +
+                            gamma = round(min(gamma + GAMMA_STEP, 5.0), 2)
+                            preview_cv2, print_canvas, lines = (
+                                render_print_ready_canvas(
+                                    best_face_crop, gamma, font_size=18
+                                )
+                            )
+                            cv2.imshow("ASCII Preview", preview_cv2)
+
+                        elif k == ord("-"):
+                            gamma = round(max(gamma - GAMMA_STEP, 0.1), 2)
+                            preview_cv2, print_canvas, lines = (
+                                render_print_ready_canvas(
+                                    best_face_crop, gamma, font_size=18
+                                )
+                            )
+                            cv2.imshow("ASCII Preview", preview_cv2)
 
                 state = "STREAM"
 
