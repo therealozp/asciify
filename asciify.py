@@ -213,10 +213,14 @@ def asciify_from_raw_image(
     new_h = h // scale_factor
 
     if max_width_chars is not None and max_height_chars is not None:
-        scale_h = int(h / max_height_chars)
-        scale_w = int(w / max_width_chars)
+        scale_h = math.ceil(h / max_height_chars)
+        scale_w = math.ceil(w / max_width_chars)
 
         scale_factor = max(scale_h, scale_w)
+
+        if scale_factor <= 1:
+            scale_factor = 1
+
         new_w = w // scale_factor
         new_h = h // scale_factor
 
