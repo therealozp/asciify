@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import subprocess
 from asciify import asciify_from_raw_image
@@ -29,62 +31,6 @@ def calculate_ascii_print_grid(
     lines_per_page = math.floor(usable_h_in / font_h_in)
 
     return chars_per_line, lines_per_page
-
-
-def render_ascii_canvas(
-    face_crop,
-    gamma,
-    font_path="assets/cpc464.ttf",
-    font_size=12,
-):
-    lines = asciify_from_raw_image(
-        face_crop,
-        output_txt_path=None,
-        max_width_chars=64,
-        max_height_chars=64,
-        gamma=gamma,
-    )
-    if not lines:
-        return None, lines
-
-    try:
-        font = ImageFont.truetype(font_path, font_size)
-    except IOError:
-        print(f"Error: Could not load font at {font_path}. Falling back to default.")
-        font = ImageFont.load_default()
-
-    left, top, right, bottom = font.getbbox("A")
-    char_w = right - left
-    char_h = bottom - top
-
-    canvas_h = len(lines) * char_h + 40
-    canvas_w = max(len(l) for l in lines) * char_w + 20
-
-    # 3. Create a blank PIL Image (RGB format)
-    pil_canvas = Image.new("RGB", (canvas_w, canvas_h), color=(0, 0, 0))
-    draw = ImageDraw.Draw(pil_canvas)
-
-    for i, line in enumerate(lines):
-        y_position = (i * char_h) + 10
-        draw.text(
-            (4, y_position),
-            line,
-            font=font,
-            fill=(200, 200, 200),  # RGB Color
-        )
-
-    label = f"gamma={gamma:.2f}  (+/- to adjust, O=Save, C=Cancel)"
-    draw.text(
-        (4, canvas_h - char_h - 10),
-        label,
-        font=font,
-        fill=(80, 200, 80),  # RGB Green
-    )
-
-    canvas = np.array(pil_canvas)
-    canvas = cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR)
-
-    return canvas, lines
 
 
 def render_print_ready_canvas(
@@ -161,6 +107,14 @@ def render_print_ready_canvas(
     )
 
     return preview_cv2, print_canvas, lines
+
+
+def print_to_specific_printer_mac(pdf_path, printer_name):
+    # The -P flag tells lpr exactly which printer to use
+    command = f'lpr -P "{printer_name}" "{pdf_path}"'
+
+    print(f"Sending to {printer_name}...")
+    os.system(command)
 
 
 def main():
@@ -279,6 +233,9 @@ def main():
                             pdf_filename = "printable_ascii.pdf"
                             print_canvas.save(pdf_filename, "PDF", resolution=300)
                             print(f"Saved print-ready document to {pdf_filename}")
+                            print_to_specific_printer_mac(
+                                pdf_filename, "HP-LaserJet-M402dn"
+                            )
 
                         elif k == ord("c"):
                             cv2.destroyWindow("ASCII Preview")
