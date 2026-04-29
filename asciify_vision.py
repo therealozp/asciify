@@ -2,6 +2,7 @@ import cv2
 import subprocess
 from asciify import asciify_from_raw_image
 from ultralytics import YOLO
+from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
 # --- CONFIGURATION ---
@@ -51,6 +52,14 @@ def main():
             # If a face is found, draw the bounding box and prep the crop
             if best_box is not None:
                 x1, y1, x2, y2 = map(int, best_box.xyxy[0])
+                expansion = 0.2
+                dist_x = int((x2 - x1) * expansion)
+                dist_y = int((y2 - y1) * expansion)
+
+                x1 = max(0, x1 - dist_x // 2)
+                y1 = max(0, y1 - dist_y // 2)
+                x2 = min(frame.shape[1], x2 + dist_x // 2)
+                y2 = min(frame.shape[0], y2 + dist_y // 2)
 
                 # Draw the bounding box on the display frame
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -99,15 +108,15 @@ def main():
                 print("Capture approved. Generating ASCII preview...")
                 cv2.destroyWindow("Preview (O=Approve, C=Cancel)")
 
-                font = cv2.FONT_HERSHEY_PLAIN
-                font_scale = 0.6
-                thickness = 1
-                char_w, char_h = 6, 10
-
                 gamma = 1.0
                 GAMMA_STEP = 0.1
 
-                def render_ascii_canvas(face_crop, gamma):
+                def render_ascii_canvas(
+                    face_crop,
+                    gamma,
+                    font_path="assets/cpc464",
+                    font_size=12,
+                ):
                     lines = asciify_from_raw_image(
                         face_crop,
                         output_txt_path=None,
@@ -118,32 +127,44 @@ def main():
                     if not lines:
                         return None, lines
 
-                    canvas_h = len(lines) * char_h + 10
-                    canvas_w = max(len(l) for l in lines) * char_w + 10
-                    canvas = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8)
+                    try:
+                        font = ImageFont.truetype(font_path, font_size)
+                    except IOError:
+                        print(
+                            f"Error: Could not load font at {font_path}. Falling back to default."
+                        )
+                        font = ImageFont.load_default()
+
+                    left, top, right, bottom = font.getbbox("A")
+                    char_w = right - left
+                    char_h = bottom - top
+
+                    canvas_h = len(lines) * char_h + 40
+                    canvas_w = max(len(l) for l in lines) * char_w + 20
+
+                    # 3. Create a blank PIL Image (RGB format)
+                    pil_canvas = Image.new("RGB", (canvas_w, canvas_h), color=(0, 0, 0))
+                    draw = ImageDraw.Draw(pil_canvas)
 
                     for i, line in enumerate(lines):
-                        cv2.putText(
-                            canvas,
+                        y_position = (i * char_h) + 10
+                        draw.text(
+                            (4, y_position),
                             line,
-                            (4, (i + 1) * char_h),
-                            font,
-                            font_scale,
-                            (200, 200, 200),
-                            thickness,
+                            font=font,
+                            fill=(200, 200, 200),  # RGB Color
                         )
 
-                    # HUD: show current gamma
                     label = f"gamma={gamma:.2f}  (+/- to adjust, O=Save, C=Cancel)"
-                    cv2.putText(
-                        canvas,
+                    draw.text(
+                        (4, canvas_h - char_h - 10),
                         label,
-                        (4, canvas_h - 2),
-                        font,
-                        font_scale,
-                        (80, 200, 80),
-                        thickness,
+                        font=font,
+                        fill=(80, 200, 80),  # RGB Green
                     )
+
+                    canvas = np.array(pil_canvas)
+                    canvas = cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR)
 
                     return canvas, lines
 
