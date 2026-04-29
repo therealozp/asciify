@@ -229,6 +229,17 @@ def asciify_from_raw_image(
     lum_chars = get_luminance_characters(gray_downscaled, gamma=gamma)
     lines = []
     # 4. Merge the edge map and luminance map, then write to file
+    if output_txt_path is None:
+        for y in range(new_h):
+            row_chars = []
+            for x in range(new_w):
+                if edge_map[y][x] != " ":
+                    row_chars.append(edge_map[y][x])
+                else:
+                    row_chars.append(lum_chars[y, x])
+            lines.append("".join(row_chars))
+        return lines
+
     with open(output_txt_path, "w", encoding="utf-8") as f:
         f.write("\eA\x05\e2\r\n")
         for y in range(new_h):
