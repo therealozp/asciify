@@ -45,7 +45,7 @@ def optimized_shader_map(angle_map, block_size):
     new_h, new_w = h // block_size, w // block_size
 
     shader_map = [[" " for _ in range(new_w)] for _ in range(new_h)]
-    angle_conversions = {0: "-", 45: "/", 90: "l", 135: "\\"}
+    angle_conversions = {0: "-", 45: "/", 90: "|", 135: "\\"}
 
     for y in range(new_h):
         for x in range(new_w):
